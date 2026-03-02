@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>口語練習助理</title>
+  <meta name="description" content="專為失語症患者設計的口語練習程式，內建常用對話與正確率比對。">
+</head>
+
+<body>
+  <div id="app">
+    <div class="container">
+      <header>
+        <h1>口語練習</h1>
+        <p class="subtitle">點擊播放聽提示，按下說話開始練習</p>
+        <div class="stats">
+          <span class="stat-item">已完成句子: <span id="completed-count">0</span></span>
+          <span class="stat-item secondary">已跳過題數: <span id="skipped-count">0</span></span>
+        </div>
+      </header>
+
+      <main>
+        <div class="card sentence-card">
+          <div id="target-sentence" class="sentence-display">
+            <!-- Sentence will be loaded here -->
+            載入中...
+          </div>
+        </div>
+
+        <div class="card feedback-card">
+          <div id="user-result" class="result-display">
+            <!-- Result highlight will be shown here -->
+            尚未開始
+          </div>
+          <div id="accuracy-badge" class="accuracy-badge hidden">
+            100% 正確！
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="btn-play" class="btn btn-secondary" title="播放提示音">
+            <span class="icon">🔊</span> 播放提示
+          </button>
+          <button id="btn-record" class="btn btn-primary" title="開始錄音">
+            <span class="icon">🎤</span> 按下說話
+          </button>
+          <button id="btn-skip" class="btn btn-ghost" title="跳到下一題">
+            跳過此題 <span class="icon">⏩</span>
+          </button>
+        </div>
+
+        <div class="navigation hidden" id="next-container">
+          <button id="btn-next" class="btn btn-success">
+            下一題 <span class="icon">➜</span>
+          </button>
+        </div>
+      </main>
+
+      <div id="success-overlay" class="overlay hidden">
+        <div class="overlay-content">
+          <div class="confetti">🎉</div>
+          <h2>太棒了！</h2>
+          <p>你說得很完整！</p>
+          <button id="btn-overlay-next" class="btn btn-success">繼續下一題</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
