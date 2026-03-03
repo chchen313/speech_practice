@@ -5,8 +5,8 @@ import { sentences } from './sentences.js'
 let currentSentence = "";
 let recognition = null;
 let isRecording = false;
-let completedCount = 0;
-let skippedCount = 0;
+let completedCount = parseInt(localStorage.getItem('completedCount')) || 0;
+let skippedCount = parseInt(localStorage.getItem('skippedCount')) || 0;
 let accumulatedTranscript = ""; // New global buffer for manual mode
 
 // DOM Elements
@@ -174,6 +174,7 @@ function loadRandomSentence() {
 
 function showSuccess() {
   completedCount++;
+  localStorage.setItem('completedCount', completedCount);
   completedCountDisplay.textContent = completedCount;
 
   accuracyBadge.textContent = "100% 正確！";
@@ -198,6 +199,7 @@ btnRecord.addEventListener('click', () => {
 
 function skipSentence() {
   skippedCount++;
+  localStorage.setItem('skippedCount', skippedCount);
   skippedCountDisplay.textContent = skippedCount;
   loadRandomSentence();
 }
@@ -208,5 +210,7 @@ btnOverlayNext.addEventListener('click', loadRandomSentence);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  completedCountDisplay.textContent = completedCount;
+  skippedCountDisplay.textContent = skippedCount;
   loadRandomSentence();
 });
