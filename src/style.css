@@ -166,6 +166,13 @@ h1 {
   color: white;
 }
 
+#btn-back-stage1,
+#btn-skip {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
 .btn {
   border: none;
   border-radius: 16px;
@@ -223,6 +230,11 @@ h1 {
 /* Character Highlighting */
 .char-correct {
   color: var(--correct);
+}
+
+.char-homophone {
+  color: #fbbf24;
+  /* yellow/amber */
 }
 
 .char-incorrect {

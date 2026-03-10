@@ -1,8 +1,10 @@
 import './style.css'
 import { sentences } from './sentences.js'
+import { pinyin } from 'pinyin-pro'
 
 // App State
 let currentSentence = "";
+let currentStage = 1;
 let recognition = null;
 let isRecording = false;
 let completedCount = parseInt(localStorage.getItem('completedCount')) || 0;
@@ -14,7 +16,9 @@ const targetDisplay = document.getElementById('target-sentence');
 const userResultDisplay = document.getElementById('user-result');
 const accuracyBadge = document.getElementById('accuracy-badge');
 const btnPlay = document.getElementById('btn-play');
+const btnBackStage1 = document.getElementById('btn-back-stage1');
 const btnRecord = document.getElementById('btn-record');
+const btnConfirmRetry = document.getElementById('btn-confirm-retry');
 const btnNext = document.getElementById('btn-next');
 const btnSkip = document.getElementById('btn-skip');
 const btnOverlayNext = document.getElementById('btn-overlay-next');
@@ -22,6 +26,18 @@ const nextContainer = document.getElementById('next-container');
 const successOverlay = document.getElementById('success-overlay');
 const completedCountDisplay = document.getElementById('completed-count');
 const skippedCountDisplay = document.getElementById('skipped-count');
+
+function getHiddenSentence() {
+  let hiddenText = "";
+  for (const char of currentSentence) {
+    if (/[\p{P}\p{S}\p{Z}]/gu.test(char)) {
+      hiddenText += char;
+    } else {
+      hiddenText += "❓";
+    }
+  }
+  return hiddenText;
+}
 
 // Initialize Speech Recognition
 function initSpeechRecognition() {
@@ -88,24 +104,30 @@ function stopRecording() {
 
 // Comparison Logic
 function processResult(spokenText) {
-  const punctuationRegex = /[，。？！：；""''“”‘’（）(),.\?!\s]/g;
+  const punctuationRegex = /[\p{P}\p{S}\p{Z}]/gu;
   const cleanSpoken = spokenText.replace(punctuationRegex, "");
 
-  // We will track which characters in the target sentence have been correctly spoken in order
-  let correctIndices = new Set();
+  let matchTypes = new Map();
   let lastMatchedIdx = -1;
 
-  // Iterate through what the user said
   for (const char of cleanSpoken) {
-    // Search for this character in the target sentence, but only AFTER the last match
+    const charPinyins = pinyin(char, { toneType: 'num', type: 'array', multiple: true });
+
     for (let i = lastMatchedIdx + 1; i < currentSentence.length; i++) {
       const targetChar = currentSentence[i];
       if (punctuationRegex.test(targetChar)) continue;
 
       if (targetChar === char) {
-        correctIndices.add(i);
+        matchTypes.set(i, 'correct');
         lastMatchedIdx = i;
         break; // Match found, move to next spoken character
+      }
+
+      const targetPinyins = pinyin(targetChar, { toneType: 'num', type: 'array', multiple: true });
+      if (targetPinyins.some(tp => charPinyins.includes(tp))) {
+        matchTypes.set(i, 'homophone');
+        lastMatchedIdx = i;
+        break;
       }
     }
   }
@@ -114,7 +136,6 @@ function processResult(spokenText) {
   let correctCount = 0;
   let targetCharCount = 0;
 
-  // Build the display based on the correctIndices
   for (let i = 0; i < currentSentence.length; i++) {
     const char = currentSentence[i];
 
@@ -125,8 +146,13 @@ function processResult(spokenText) {
 
     targetCharCount++;
 
-    if (correctIndices.has(i)) {
-      highlightedHTML += `<span class="char-correct">${char}</span>`;
+    if (matchTypes.has(i)) {
+      const type = matchTypes.get(i);
+      if (type === 'correct') {
+        highlightedHTML += `<span class="char-correct">${char}</span>`;
+      } else {
+        highlightedHTML += `<span class="char-homophone">${char}</span>`;
+      }
       correctCount++;
     } else {
       highlightedHTML += `<span class="char-incorrect">${char}</span>`;
@@ -138,11 +164,26 @@ function processResult(spokenText) {
   const accuracy = targetCharCount > 0 ? Math.round((correctCount / targetCharCount) * 100) : 0;
 
   if (accuracy === 100) {
-    showSuccess();
+    if (currentStage === 1) {
+      currentStage = 2;
+      targetDisplay.textContent = getHiddenSentence();
+      userResultDisplay.innerHTML = "第一階段成功！請在無提示的情況下再次說出。";
+      accuracyBadge.classList.add('hidden');
+      btnBackStage1.classList.remove('hidden');
+    } else {
+      showSuccess();
+    }
   } else {
     accuracyBadge.textContent = `${accuracy}% 正確`;
     accuracyBadge.classList.remove('hidden');
-    nextContainer.classList.remove('hidden');
+
+    if (currentStage === 1) {
+      nextContainer.classList.remove('hidden');
+    } else {
+      btnRecord.classList.add('hidden');
+      btnConfirmRetry.classList.remove('hidden');
+      nextContainer.classList.add('hidden');
+    }
   }
 }
 
@@ -166,10 +207,14 @@ function loadRandomSentence() {
   targetDisplay.textContent = currentSentence;
 
   // Reset state
+  currentStage = 1;
   userResultDisplay.textContent = "尚未開始";
   accuracyBadge.classList.add('hidden');
   nextContainer.classList.add('hidden');
   successOverlay.classList.add('hidden');
+  btnBackStage1.classList.add('hidden');
+  btnConfirmRetry.classList.add('hidden');
+  btnRecord.classList.remove('hidden');
 }
 
 function showSuccess() {
@@ -207,6 +252,24 @@ function skipSentence() {
 btnNext.addEventListener('click', loadRandomSentence);
 btnSkip.addEventListener('click', skipSentence);
 btnOverlayNext.addEventListener('click', loadRandomSentence);
+
+btnBackStage1.addEventListener('click', () => {
+  currentStage = 1;
+  targetDisplay.textContent = currentSentence;
+  userResultDisplay.textContent = "已回到第一階段，請看著提示再次練習。";
+  accuracyBadge.classList.add('hidden');
+  btnBackStage1.classList.add('hidden');
+  btnConfirmRetry.classList.add('hidden');
+  btnRecord.classList.remove('hidden');
+});
+
+btnConfirmRetry.addEventListener('click', () => {
+  targetDisplay.textContent = getHiddenSentence();
+  userResultDisplay.textContent = "請再次嘗試！";
+  accuracyBadge.classList.add('hidden');
+  btnConfirmRetry.classList.add('hidden');
+  btnRecord.classList.remove('hidden');
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
